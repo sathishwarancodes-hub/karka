@@ -1,13 +1,33 @@
 import { useState, type FormEvent } from "react";
+import { Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { submitEnquiry } from "@/lib/enquiries.functions";
+import { enquirySchema } from "@/lib/enquiry-schema";
+import { useSession } from "@/lib/use-session";
 
 export function KarkaNexusPage() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const onSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const [statusOk, setStatusOk] = useState(false);
+  const [sending, setSending] = useState(false);
+  const submit = useServerFn(submitEnquiry);
+  const session = useSession();
+  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (sending) return;
     const form = e.currentTarget;
     if (!form.checkValidity()) { form.reportValidity(); return; }
-    setStatus("Thanks! Online enquiries aren't connected yet — please call us at +91 94875 30243.");
+    const values = Object.fromEntries(new FormData(form).entries());
+    const parsed = enquirySchema.safeParse(values);
+    if (!parsed.success) { setStatusOk(false); setStatus(parsed.error.issues[0]?.message ?? "Please check the form"); return; }
+    setSending(true); setStatus(null);
+    try {
+      const r = await submit({ data: values });
+      if (r.ok) { form.reset(); setStatusOk(true); setStatus("Thank you! Your enquiry has been received. Our team will contact you soon."); }
+      else { setStatusOk(false); setStatus(r.error); }
+    } catch {
+      setStatusOk(false); setStatus("Something went wrong. Please try again.");
+    } finally { setSending(false); }
   };
   return (
     <div className="bg-surface font-body text-on-surface">
@@ -35,6 +55,10 @@ export function KarkaNexusPage() {
 <span className="">Explore Programs</span>
 <span className="material-symbols-outlined text-[16px] text-tertiary">arrow_forward</span>
 </a>
+<Link to={session ? "/account" : "/auth"} className="hidden md:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-label-lg text-on-surface-variant hover:text-on-surface border border-outline-variant/40 hover:border-tertiary transition-all duration-300">
+<span className="material-symbols-outlined text-[16px] text-tertiary">{session ? "account_circle" : "login"}</span>
+<span>{session ? "Account" : "Sign in"}</span>
+</Link>
 <a className="relative group overflow-hidden px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#22D3EE] text-on-primary font-label-lg transition-all duration-300 shadow-[0_0_20px_rgba(139,92,246,0.4)] hover:shadow-[0_0_25px_rgba(47,217,244,0.5)] hover:scale-[1.02] flex items-center gap-2" data-path="get-started" href="#get-started">
 <span className="material-symbols-outlined text-[18px] group-hover:rotate-12 transition-transform">rocket_launch</span>
 <span className="tracking-wide">Get Started</span>
@@ -44,7 +68,7 @@ export function KarkaNexusPage() {
 </button>
 </div>
 </div>
-<div className={`lg:hidden grid transition-all duration-300 ease-out ${menuOpen ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}><nav className="overflow-hidden flex flex-col gap-1">{[["Programs","#programs"],["Projects","#projects"],["Why Karka","#why-karka"],["Placements","#placements"],["FAQs","#faqs"],["Get Started","#get-started"]].map(([l,h]) => <a key={h} href={h} onClick={() => setMenuOpen(false)} className="px-3 py-2 rounded-xl text-label-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-colors">{l}</a>)}</nav></div></div>
+<div className={`lg:hidden grid transition-all duration-300 ease-out ${menuOpen ? "grid-rows-[1fr] opacity-100 mt-3" : "grid-rows-[0fr] opacity-0"}`}><nav className="overflow-hidden flex flex-col gap-1">{[["Programs","#programs"],["Projects","#projects"],["Why Karka","#why-karka"],["Placements","#placements"],["FAQs","#faqs"],["Get Started","#get-started"]].map(([l,h]) => <a key={h} href={h} onClick={() => setMenuOpen(false)} className="px-3 py-2 rounded-xl text-label-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-variant/30 transition-colors">{l}</a>)}<Link to={session ? "/account" : "/auth"} onClick={() => setMenuOpen(false)} className="px-3 py-2 rounded-xl text-label-lg text-tertiary hover:bg-surface-variant/30 transition-colors">{session ? "My account" : "Sign in"}</Link></nav></div></div>
 </header><main className="w-full pt-20 bg-surface"><div className="flex flex-col w-full text-on-surface">
 
 <section id="top" className="relative min-h-[921px] flex items-center justify-center overflow-hidden pt-12 pb-24 px-6 lg:px-12">
@@ -460,17 +484,17 @@ export function KarkaNexusPage() {
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Full Name</label>
-<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="name" placeholder="Alex Turner" required type="text" />
+<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="full_name" maxLength={100} placeholder="Alex Turner" required type="text" />
 </div>
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Email Address</label>
-<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="email" placeholder="alex@example.com" required type="email" />
+<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="email" maxLength={255} placeholder="alex@example.com" required type="email" />
 </div>
 </div>
 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Phone Number</label>
-<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="phone" placeholder="+1 (555) 019-2834" required type="tel" />
+<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="phone" maxLength={20} placeholder="+1 (555) 019-2834" required type="tel" />
 </div>
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Program of Interest</label>
@@ -486,18 +510,19 @@ export function KarkaNexusPage() {
 </div>
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Current Education Level / Background</label>
-<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="education" placeholder="e.g. Computer Science Graduate / Working Professional" type="text" />
+<input className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="background" maxLength={200} placeholder="e.g. Computer Science Graduate / Working Professional" type="text" />
 </div>
 <div className="space-y-2">
 <label className="text-label-lg text-on-surface">Optional Message</label>
-<textarea className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="message" placeholder="Tell us about your background and career goals..." rows={4} />
+<textarea className="w-full bg-surface border border-outline-variant/40 focus:border-tertiary text-on-surface rounded-xl px-4 py-3 outline-none transition-colors text-body-md" name="message" maxLength={2000} placeholder="Tell us about your background and career goals..." rows={4} />
 </div>
+<input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
 <div className="pt-4 text-center">
-<button className="w-full md:w-auto px-space-xl py-4 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#2fd9f4] text-on-primary font-label-lg hover:shadow-[0_0_30px_rgba(47,217,244,0.5)] hover:scale-[1.02] transition-all shadow-[0_0_25px_rgba(139,92,246,0.4)] flex items-center justify-center gap-space-sm mx-auto font-semibold" type="submit">
-            Start My Journey <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
+<button className="w-full md:w-auto px-space-xl py-4 rounded-xl bg-gradient-to-r from-[#8B5CF6] via-[#6366F1] to-[#2fd9f4] text-on-primary font-label-lg hover:shadow-[0_0_30px_rgba(47,217,244,0.5)] hover:scale-[1.02] transition-all shadow-[0_0_25px_rgba(139,92,246,0.4)] flex items-center justify-center gap-space-sm mx-auto font-semibold disabled:opacity-60" type="submit" disabled={sending}>
+            {sending ? "Sending…" : "Start My Journey"} <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
 </button>
 </div>
-{status && <p role="status" className="text-center text-body-sm text-tertiary">{status}</p>}</form>
+{status && <p role="status" className={`text-center text-body-sm ${statusOk ? "text-tertiary" : "text-error"}`}>{status}</p>}</form>
 </div></section>
 
 <section className="py-24 px-6 lg:px-12 bg-surface-container-low" id="faqs"><div className="absolute inset-0 bg-gradient-to-tr from-[#8B5CF6]/20 via-[#2fd9f4]/15 to-[#ec4899]/20 pointer-events-none blur-3xl"></div>

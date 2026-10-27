@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState, type FormEvent } from "react";
+import { Fragment, useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { AppHeader } from "@/components/AppHeader";
@@ -48,7 +48,7 @@ function Admin() {
   );
 }
 
-function Shell({ admin, children }: { admin: boolean; children: React.ReactNode }) {
+function Shell({ admin, children }: { admin: boolean; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-surface text-on-surface">
       <AppHeader isAdmin={admin} />
@@ -166,8 +166,8 @@ function Enquiries() {
             </thead>
             <tbody>
               {q.data!.rows.map((r) => (
-                <>
-                  <tr key={r.id} className="border-t border-surface-variant/40">
+                <Fragment key={r.id}>
+                  <tr className="border-t border-surface-variant/40">
                     <td className="py-3 pr-4 whitespace-nowrap">{new Date(r.created_at).toLocaleDateString()}</td>
                     <td className="py-3 pr-4">{r.full_name}</td>
                     <td className="py-3 pr-4">{r.email}</td>
@@ -182,7 +182,7 @@ function Enquiries() {
                     </td>
                   </tr>
                   {open === r.id && (
-                    <tr key={r.id + "-d"}>
+                    <tr>
                       <td colSpan={6} className="pb-4">
                         <div className="bg-surface rounded-xl p-4 space-y-1 text-on-surface-variant">
                           <p><b className="text-on-surface">Phone:</b> {r.phone}</p>
@@ -193,7 +193,7 @@ function Enquiries() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>
