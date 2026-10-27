@@ -17,7 +17,7 @@ export function BrandLink() {
   );
 }
 
-export function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
+export function AuthShell({ title, subtitle, children }: { title: string; subtitle?: string | undefined; children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[#070816] text-on-surface flex items-center justify-center px-4 py-16 relative overflow-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-[#8B5CF6]/30 via-[#2fd9f4]/20 to-[#d946ef]/20 blur-[140px] pointer-events-none" />
